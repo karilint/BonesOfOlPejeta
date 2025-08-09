@@ -16,3 +16,6 @@ psycopg2-binary # PostgreSQL (optional)
 
 # Utilities
 python-dotenv
+
+# File handling
+xlsxwriter
