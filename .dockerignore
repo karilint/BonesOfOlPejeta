@@ -1,0 +1,9 @@
+.git
+.vscode
+__pycache__
+.ipynb_checkpoints
+*.pyc
+*.pyo
+*.pyd
+data/*
+!data/.gitkeep

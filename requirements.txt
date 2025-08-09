@@ -1,0 +1,18 @@
+# Jupyter core
+jupyterlab
+ipykernel
+
+# Data science
+numpy
+pandas
+matplotlib
+scikit-learn
+
+# DB connectors
+SQLAlchemy
+pyodbc          # SQL Server via ODBC (FreeTDS or MS ODBC if enabled)
+pymysql         # MariaDB/MySQL (pure Python client)
+psycopg2-binary # PostgreSQL (optional)
+
+# Utilities
+python-dotenv

@@ -1,0 +1,15 @@
+# Python / Jupyter
+__pycache__/
+*.py[cod]
+*.so
+.ipynb_checkpoints/
+.env
+.venv/
+*.egg-info/
+
+# Data (keep folder, ignore files)
+data/*
+!data/.gitkeep
+
+# VS Code
+.vscode/

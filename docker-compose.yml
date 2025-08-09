@@ -1,0 +1,16 @@
+services:
+  jupyter:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: jupyter_bonesofolpejeta
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/home/jovyan/work
+    env_file:
+      - .env
+    command: start-notebook.sh --ServerApp.token='' --ServerApp.password=''
+    environment:
+      - GRANT_SUDO=no
+    restart: unless-stopped
