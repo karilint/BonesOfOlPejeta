@@ -5,6 +5,7 @@ ipykernel
 # Data science
 numpy
 pandas
+prince
 matplotlib
 seaborn
 scikit-learn
