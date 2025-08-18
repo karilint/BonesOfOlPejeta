@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
@@ -92,6 +93,22 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "What element is this?",
         ]
     ]
+
+    # Adjust counts for nonidentifiable bones and element-specific fractions
+    if side_cols:
+        # Set counts to 1 for nonidentifiable bones regardless of side
+        mask = pivot["What element is this?"].str.lower() == "bone nonidentifiable"
+        pivot.loc[mask, side_cols] = 1
+
+        # DataFrame defining element-specific divisors
+        element_divisors = pd.DataFrame(
+            {"element": ["rib", "vertebra"], "count": [12, 24]}
+        )
+        for element, divisor in element_divisors.itertuples(index=False):
+            rows = pivot["What element is this?"].str.lower() == element
+            if rows.any():
+                adjusted = np.ceil(pivot.loc[rows, side_cols] / divisor).astype(int)
+                pivot.loc[rows, side_cols] = adjusted
 
     pivot["element_mni"] = pivot[side_cols].max(axis=1)
 
