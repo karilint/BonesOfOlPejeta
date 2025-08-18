@@ -1,5 +1,41 @@
 import pandas as pd
 import numpy as np
+from pathlib import Path
+
+
+ELEMENT_COUNTS_PATH = (
+    Path(__file__).resolve().parent.parent / "data/import/excel/Element counts.xlsx"
+)
+
+
+def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
+    """Load element divisors from an Excel file.
+
+    Parameters
+    ----------
+    path : Path
+        Location of the Excel file containing ``element`` and ``count`` columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with lowercase ``element`` names and their associated ``count``
+        divisors.
+    """
+    try:
+        df_div = pd.read_excel(path)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Element counts file not found: {path}") from exc
+
+    df_div.columns = df_div.columns.str.strip().str.lower()
+    required_cols = {"element", "count"}
+    if not required_cols.issubset(df_div.columns):
+        missing = required_cols - set(df_div.columns)
+        raise ValueError(
+            f"Element counts file missing required columns: {sorted(missing)}"
+        )
+
+    return df_div[list(required_cols)]
 
 
 def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
@@ -100,11 +136,13 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         mask = pivot["What element is this?"].str.lower() == "bone nonidentifiable"
         pivot.loc[mask, side_cols] = 1
 
-        # DataFrame defining element-specific divisors
-        element_divisors = pd.DataFrame(
-            {"element": ["rib", "vertebra"], "count": [12, 24]}
-        )
+        # Load element-specific divisors from Excel
+        element_divisors = _load_element_divisors()
         for element, divisor in element_divisors.itertuples(index=False):
+            element = str(element).strip().lower()
+            divisor = pd.to_numeric(divisor, errors="coerce")
+            if pd.isna(divisor) or divisor == 0:
+                continue
             rows = pivot["What element is this?"].str.lower() == element
             if rows.any():
                 adjusted = np.ceil(pivot.loc[rows, side_cols] / divisor).astype(int)
