@@ -31,6 +31,24 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["TransectUID"] = pd.to_numeric(df["TransectUID"], errors="coerce").astype("Int64")
 
+    # If Taxon Label is missing or empty, attempt to construct it from
+    # alternative taxon columns that may exist in the raw data.
+    needs_taxon = "Taxon Label" not in df.columns or df["Taxon Label"].isna().any()
+    if needs_taxon:
+        alt_cols = [
+            c for c in ["Post: Taxon Guess?", "Pre: Taxon"] if c in df.columns
+        ]
+        if alt_cols:
+            if "Taxon Label" not in df.columns:
+                df["Taxon Label"] = pd.NA
+            for c in alt_cols:
+                df["Taxon Label"] = df["Taxon Label"].fillna(df[c])
+            df = df.drop(columns=alt_cols)
+        else:
+            raise ValueError(
+                "Missing columns: ['Taxon Label'] and no alternative taxon columns found"
+            )
+
     if "Side" in df.columns:
         # Raw dataframe: ensure all required columns exist and drop rows lacking
         # essential information before creating the pivot table.
