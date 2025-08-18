@@ -25,6 +25,12 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         "What element is this?",
     }
 
+    if "TransectUID" not in df.columns:
+        raise ValueError("Missing columns: ['TransectUID']")
+
+    df = df.copy()
+    df["TransectUID"] = pd.to_numeric(df["TransectUID"], errors="coerce").astype("Int64")
+
     if "Side" in df.columns:
         # Raw dataframe: ensure all required columns exist and drop rows lacking
         # essential information before creating the pivot table.
@@ -54,6 +60,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         if missing:
             raise ValueError(f"Missing columns: {sorted(missing)}")
         pivot = df.dropna(subset=required).copy()
+        pivot["TransectUID"] = pd.to_numeric(pivot["TransectUID"], errors="coerce").astype("Int64")
 
     side_cols = [
         c
@@ -82,5 +89,8 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         group_mni.groupby("TransectUID")["element_mni"].sum().reset_index()
     )
     transect_mni = transect_mni.rename(columns={"element_mni": "MNI"})
+    transect_mni["TransectUID"] = pd.to_numeric(
+        transect_mni["TransectUID"], errors="coerce"
+    ).astype("Int64")
 
     return transect_mni
