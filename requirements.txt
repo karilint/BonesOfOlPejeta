@@ -22,3 +22,4 @@ python-dotenv
 
 # File handling
 xlsxwriter  # For formatted Excel exports
+openpyxl    # For reading Excel files
