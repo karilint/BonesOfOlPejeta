@@ -26,10 +26,12 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     }
 
     if "Side" in df.columns:
-        # raw dataframe, build pivot
+        # Raw dataframe: ensure all required columns exist and drop rows lacking
+        # essential information before creating the pivot table.
         missing = required.union({"Side"}) - set(df.columns)
         if missing:
             raise ValueError(f"Missing columns: {sorted(missing)}")
+        df = df.dropna(subset=required.union({"Side"}))
         pivot = (
             df.pivot_table(
                 index=[
@@ -47,11 +49,11 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             .reset_index()
         )
     else:
-        # assume already pivoted
+        # Assume already pivoted.  Validate columns and remove incomplete rows.
         missing = required - set(df.columns)
         if missing:
             raise ValueError(f"Missing columns: {sorted(missing)}")
-        pivot = df.copy()
+        pivot = df.dropna(subset=required).copy()
 
     side_cols = [
         c
