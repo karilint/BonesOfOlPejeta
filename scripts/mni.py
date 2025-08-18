@@ -92,7 +92,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         missing = required.union({"Side"}) - set(df.columns)
         if missing:
             raise ValueError(f"Missing columns: {sorted(missing)}")
-        df = df.dropna(subset=required.union({"Side"}))
+        df = df.dropna(subset=required.union({"Side"}) - {"What element is this?"})
         pivot = (
             df.pivot_table(
                 index=[
@@ -116,6 +116,11 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             raise ValueError(f"Missing columns: {sorted(missing)}")
         pivot = df.dropna(subset=required).copy()
         pivot["TransectUID"] = pd.to_numeric(pivot["TransectUID"], errors="coerce").astype("Int64")
+
+    # Replace empty or missing element names with "teeth" before scaling counts
+    pivot["What element is this?"] = (
+        pivot["What element is this?"].replace(r"^\s*$", pd.NA, regex=True).fillna("teeth")
+    )
 
     side_cols = [
         c
