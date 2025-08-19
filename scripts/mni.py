@@ -45,8 +45,9 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pd.DataFrame
         Either a raw dataframe containing the columns ``TransectUID``,
-        ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``What element is this?``
-        and ``Side`` or a pivoted dataframe where each side is already a
+        ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``Pre: Size Class ``,
+        ``What element is this?`` and ``Side`` or a pivoted dataframe where each
+        side is already a
         column.
 
     Returns
@@ -59,6 +60,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         "Taxon Label",
         "Pre: Age",
         "Pre: Sex",
+        "Pre: Size Class ",
         "What element is this?",
     }
 
@@ -100,6 +102,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                     "Taxon Label",
                     "Pre: Age",
                     "Pre: Sex",
+                    "Pre: Size Class ",
                     "What element is this?",
                 ],
                 columns="Side",
@@ -131,6 +134,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "Taxon Label",
             "Pre: Age",
             "Pre: Sex",
+            "Pre: Size Class ",
             "What element is this?",
         ]
     ]
@@ -156,9 +160,15 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     pivot["element_mni"] = pivot[side_cols].max(axis=1)
 
     group_mni = (
-        pivot.groupby(["TransectUID", "Taxon Label", "Pre: Age", "Pre: Sex"])[
-            "element_mni"
-        ]
+        pivot.groupby(
+            [
+                "TransectUID",
+                "Taxon Label",
+                "Pre: Age",
+                "Pre: Sex",
+                "Pre: Size Class ",
+            ]
+        )["element_mni"]
         .max()
         .reset_index()
     )
