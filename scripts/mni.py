@@ -71,6 +71,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     if "TransectUID" not in df.columns:
         raise ValueError("Missing columns: ['TransectUID']")
 
+    # Normalise transect identifiers to integers
     df["TransectUID"] = pd.to_numeric(df["TransectUID"], errors="coerce").astype("Int64")
 
     # If Taxon Label is missing or empty, attempt to construct it from
@@ -90,6 +91,10 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             raise ValueError(
                 "Missing columns: ['Taxon Label'] and no alternative taxon columns found"
             )
+
+    # Remove high-level taxa that should not contribute to MNI
+    if "Taxon Label" in df.columns:
+        df = df[~df["Taxon Label"].str.lower().isin(["mammalia indet", "ungulate"])]
 
     if "Side" in df.columns:
         # Raw dataframe: ensure all required columns exist and drop rows lacking
@@ -144,13 +149,17 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         ]
     ]
 
+    # If an "unknown" side column exists, split the count evenly between sides
+    if "unknown" in side_cols:
+        pivot["unknown"] = np.ceil(pivot["unknown"] / 2).astype(int)
+
     # Adjust counts for nonidentifiable bones and element-specific fractions
     if side_cols:
         # Set counts to 1 for nonidentifiable bones regardless of side
         mask = pivot["What element is this?"].str.lower() == "bone nonidentifiable"
         pivot.loc[mask, side_cols] = 1
 
-        # Load element-specific divisors from Excel
+        # Load element-specific divisors from Excel and apply them
         element_divisors = _load_element_divisors()
         for element, divisor in element_divisors.itertuples(index=False):
             element = str(element).strip().lower()
