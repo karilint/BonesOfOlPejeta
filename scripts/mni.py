@@ -45,7 +45,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pd.DataFrame
         Either a raw dataframe containing the columns ``TransectUID``,
-        ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``Pre: Size Class ``,
+        ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``Pre: Size Class``,
         ``What element is this?`` and ``Side`` or a pivoted dataframe where each
         side is already a
         column.
@@ -60,14 +60,16 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         "Taxon Label",
         "Pre: Age",
         "Pre: Sex",
-        "Pre: Size Class ",
+        "Pre: Size Class",
         "What element is this?",
     }
+
+    df = df.copy()
+    df.columns = df.columns.str.strip()
 
     if "TransectUID" not in df.columns:
         raise ValueError("Missing columns: ['TransectUID']")
 
-    df = df.copy()
     df["TransectUID"] = pd.to_numeric(df["TransectUID"], errors="coerce").astype("Int64")
 
     # If Taxon Label is missing or empty, attempt to construct it from
@@ -102,7 +104,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                     "Taxon Label",
                     "Pre: Age",
                     "Pre: Sex",
-                    "Pre: Size Class ",
+                    "Pre: Size Class",
                     "What element is this?",
                 ],
                 columns="Side",
@@ -134,7 +136,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "Taxon Label",
             "Pre: Age",
             "Pre: Sex",
-            "Pre: Size Class ",
+            "Pre: Size Class",
             "What element is this?",
         ]
     ]
@@ -166,7 +168,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                 "Taxon Label",
                 "Pre: Age",
                 "Pre: Sex",
-                "Pre: Size Class ",
+                "Pre: Size Class",
             ]
         )["element_mni"]
         .max()
