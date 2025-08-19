@@ -45,10 +45,9 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     ----------
     df : pd.DataFrame
         Either a raw dataframe containing the columns ``TransectUID``,
-        ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``Pre: Size class``,
-        ``Weathering class``, ``What element is this?`` and ``Side`` or a pivoted dataframe where each
-        side is already a
-        column.
+        ``Taxon Label``, ``Pre: Sex``, ``Pre: Age``, ``Weathering class``,
+        ``What element is this?`` and ``Side`` or a pivoted dataframe where each
+        side is already a column.
 
     Returns
     -------
@@ -58,9 +57,8 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     required = {
         "TransectUID",
         "Taxon Label",
-        "Pre: Age",
         "Pre: Sex",
-        "Pre: Size class",
+        "Pre: Age",
         "Weathering class",
         "What element is this?",
     }
@@ -108,11 +106,10 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                 index=[
                     "TransectUID",
                     "Taxon Label",
-                    "Pre: Age",
                     "Pre: Sex",
-                    "Pre: Size class",
-                    "Weathering class",
+                    "Pre: Age",
                     "What element is this?",
+                    "Weathering class",
                 ],
                 columns="Side",
                 aggfunc="size",
@@ -141,11 +138,10 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         not in [
             "TransectUID",
             "Taxon Label",
-            "Pre: Age",
             "Pre: Sex",
-            "Pre: Size class",
-            "Weathering class",
+            "Pre: Age",
             "What element is this?",
+            "Weathering class",
         ]
     ]
 
@@ -178,14 +174,11 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             [
                 "TransectUID",
                 "Taxon Label",
-                "Pre: Age",
                 "Pre: Sex",
-                "Pre: Size class",
+                "Pre: Age",
                 "Weathering class",
             ]
-        )["element_mni"]
-        .max()
-        .reset_index()
+        )["element_mni"].max().reset_index()
     )
 
     transect_mni = (
