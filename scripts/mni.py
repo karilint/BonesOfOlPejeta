@@ -46,7 +46,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
     df : pd.DataFrame
         Either a raw dataframe containing the columns ``TransectUID``,
         ``Taxon Label``, ``Pre: Age``, ``Pre: Sex``, ``Pre: Size class``,
-        ``What element is this?`` and ``Side`` or a pivoted dataframe where each
+        ``Weathering class``, ``What element is this?`` and ``Side`` or a pivoted dataframe where each
         side is already a
         column.
 
@@ -61,6 +61,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         "Pre: Age",
         "Pre: Sex",
         "Pre: Size class",
+        "Weathering class",
         "What element is this?",
     }
 
@@ -105,6 +106,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                     "Pre: Age",
                     "Pre: Sex",
                     "Pre: Size class",
+                    "Weathering class",
                     "What element is this?",
                 ],
                 columns="Side",
@@ -137,6 +139,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "Pre: Age",
             "Pre: Sex",
             "Pre: Size class",
+            "Weathering class",
             "What element is this?",
         ]
     ]
@@ -169,6 +172,7 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                 "Pre: Age",
                 "Pre: Sex",
                 "Pre: Size class",
+                "Weathering class",
             ]
         )["element_mni"]
         .max()
