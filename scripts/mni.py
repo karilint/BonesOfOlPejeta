@@ -94,21 +94,26 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     return df_div[["element", "count", "exclude"]]
 
 
-def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate the Minimum Number of Individuals (MNI) per Transect.
+def calculate_mni(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Calculate the Minimum Number of Individuals (MNI).
 
     Parameters
     ----------
     df : pd.DataFrame
-        Either a raw dataframe containing the columns ``TransectUID``,
-        ``Taxon Label``, ``Pre: Sex``, ``Pre: Age``, ``Weathering class``,
-        ``What element is this?`` and ``Side`` or a pivoted dataframe where each
-        side is already a column.
+        Either a raw dataframe containing ``TransectUID``, ``Taxon Label``,
+        ``Pre: Sex``, ``Pre: Age``, ``Weathering class``, ``What element is this?``
+        and ``Side`` columns or a pivoted dataframe where each side is already a
+        column.
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame with ``TransectUID`` and corresponding ``MNI`` values.
+    tuple[pd.DataFrame, pd.DataFrame]
+        Two dataframes are returned:
+
+        * ``transect_mni`` – ``TransectUID`` and aggregated ``MNI`` values.
+        * ``group_mni`` – the intermediate group MNI values used to derive the
+          transect totals with columns ``TransectUID``, ``Taxon``, ``Sex``,
+          ``Age``, ``Weathering`` and ``Group MNI``.
     """
     required = {
         "TransectUID",
@@ -238,12 +243,25 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
         )["element_mni"].max().reset_index()
     )
 
-    transect_mni = (
-        group_mni.groupby("TransectUID")["element_mni"].sum().reset_index()
+    group_mni = group_mni.rename(
+        columns={
+            "Taxon Label": "Taxon",
+            "Pre: Sex": "Sex",
+            "Pre: Age": "Age",
+            "Weathering class": "Weathering",
+            "element_mni": "Group MNI",
+        }
     )
-    transect_mni = transect_mni.rename(columns={"element_mni": "MNI"})
+    group_mni["TransectUID"] = pd.to_numeric(
+        group_mni["TransectUID"], errors="coerce"
+    ).astype("Int64")
+
+    transect_mni = (
+        group_mni.groupby("TransectUID")["Group MNI"].sum().reset_index()
+    )
+    transect_mni = transect_mni.rename(columns={"Group MNI": "MNI"})
     transect_mni["TransectUID"] = pd.to_numeric(
         transect_mni["TransectUID"], errors="coerce"
     ).astype("Int64")
 
-    return transect_mni
+    return transect_mni, group_mni
