@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import warnings
 
 
 ELEMENT_COUNTS_PATH = (
@@ -10,11 +9,12 @@ ELEMENT_COUNTS_PATH = (
 
 
 def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
-    """Load element divisors from an Excel file if available.
+    """Load element divisors from an Excel file.
 
-    If the file is missing or does not contain the expected columns, an empty
-    DataFrame is returned so that downstream logic treats all elements as having
-    a divisor of ``1``.
+    The spreadsheet must contain ``element`` and ``count`` columns and include
+    the expected vertebra counts.  Any problem reading the file or validating the
+    values results in an exception so that MNI calculations halt with a clear
+    message.
 
     Parameters
     ----------
@@ -24,48 +24,63 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        DataFrame with lowercase ``element`` names and their associated ``count``
-        divisors. An empty DataFrame is returned when the file is not usable.
+        DataFrame with lowercase ``element`` names and their associated
+        ``count`` divisors.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the Excel file is missing.
+    ValueError
+        If required columns are absent, contain non-numeric counts, or expected
+        vertebra counts are missing/mismatched.
     """
     try:
         df_div = pd.read_excel(path)
-    except FileNotFoundError:
-        warnings.warn(
-            f"Element counts file not found: {path}. "
-            "Proceeding without element divisors.",
-            RuntimeWarning,
-        )
-        return pd.DataFrame(columns=["element", "count"])
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Element counts file not found: {path}"
+        ) from exc
 
     df_div.columns = df_div.columns.str.strip().str.lower()
     required_cols = {"element", "count"}
     if not required_cols.issubset(df_div.columns):
-        warnings.warn(
-            "Element counts file missing required columns. "
-            "Proceeding without element divisors.",
-            RuntimeWarning,
+        raise ValueError(
+            "Element counts file missing required columns: 'element', 'count'"
         )
-        return pd.DataFrame(columns=["element", "count"])
 
     df_div = df_div[list(required_cols)].dropna(subset=["element"])
     df_div["element"] = df_div["element"].astype(str).str.strip().str.lower()
     df_div["count"] = pd.to_numeric(df_div["count"], errors="coerce")
-    df_div = df_div.dropna(subset=["count"])
+    if df_div["count"].isna().any():
+        raise ValueError("Element counts file contains non-numeric values")
 
-    # Basic sanity check for vertebrae counts if present
+    # Verify vertebra counts
     expected_vertebra = {
         "cervical vertebra": 7,
         "thoracic vertebra": 12,
         "lumbar vertebra": 5,
     }
-    for name, expected in expected_vertebra.items():
-        if name in df_div["element"].values:
-            actual = df_div.loc[df_div["element"] == name, "count"].iloc[0]
-            if actual != expected:
-                warnings.warn(
-                    f"Element count for '{name}' expected {expected} but got {actual}.",
-                    RuntimeWarning,
-                )
+    div_index = df_div.set_index("element")
+    missing = [name for name in expected_vertebra if name not in div_index.index]
+    mismatched = {
+        name: int(div_index.loc[name, "count"])
+        for name, expected in expected_vertebra.items()
+        if name in div_index.index and int(div_index.loc[name, "count"]) != expected
+    }
+    if missing or mismatched:
+        parts = []
+        if missing:
+            parts.append("missing " + ", ".join(missing))
+        if mismatched:
+            details = ", ".join(
+                f"{name}={actual}" for name, actual in mismatched.items()
+            )
+            parts.append(f"unexpected counts ({details})")
+        raise ValueError(
+            "Element counts spreadsheet has unexpected vertebra counts: "
+            + "; ".join(parts)
+        )
 
     return df_div
 
