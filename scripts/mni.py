@@ -14,7 +14,8 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     The spreadsheet must contain ``element`` and ``count`` columns and include
     the expected vertebra counts.  Any problem reading the file or validating the
     values results in an exception so that MNI calculations halt with a clear
-    message.
+    message.  An optional ``exclude`` column marks elements that should be
+    dropped from calculations entirely.
 
     Parameters
     ----------
@@ -24,8 +25,8 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     Returns
     -------
     pd.DataFrame
-        DataFrame with lowercase ``element`` names and their associated
-        ``count`` divisors.
+        DataFrame with lowercase ``element`` names, their associated ``count``
+        divisors and an ``exclude`` flag.
 
     Raises
     ------
@@ -49,11 +50,19 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
             "Element counts file missing required columns: 'element', 'count'"
         )
 
-    df_div = df_div[list(required_cols)].dropna(subset=["element"])
+    columns = ["element", "count"]
+    if "exclude" in df_div.columns:
+        columns.append("exclude")
+    df_div = df_div[columns].dropna(subset=["element"])
+
     df_div["element"] = df_div["element"].astype(str).str.strip().str.lower()
     df_div["count"] = pd.to_numeric(df_div["count"], errors="coerce")
     if df_div["count"].isna().any():
         raise ValueError("Element counts file contains non-numeric values")
+
+    if "exclude" not in df_div.columns:
+        df_div["exclude"] = ""
+    df_div["exclude"] = df_div["exclude"].astype(str).str.strip().str.lower()
 
     # Verify vertebra counts
     expected_vertebra = {
@@ -82,7 +91,7 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
             + "; ".join(parts)
         )
 
-    return df_div
+    return df_div[["element", "count", "exclude"]]
 
 
 def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
@@ -191,20 +200,21 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "What element is this?",
         ]
     ]
+    # Load element divisors and exclusion flags
+    element_divisors = _load_element_divisors()
+    exclude = element_divisors[element_divisors["exclude"] == "exclude"]["element"].tolist()
+
+    # Remove elements flagged for exclusion
+    pivot = pivot[~pivot["What element is this?"].str.lower().isin(exclude)]
 
     # If an "unknown" side column exists, split the count evenly between sides
     if "unknown" in side_cols:
         pivot["unknown"] = np.ceil(pivot["unknown"] / 2).astype(int)
 
-    # Adjust counts for nonidentifiable bones and element-specific fractions
+    # Apply element-specific divisors
     if side_cols:
-        # Set counts to 1 for nonidentifiable bones regardless of side
-        mask = pivot["What element is this?"].str.lower() == "bone nonidentifiable"
-        pivot.loc[mask, side_cols] = 1
-
-        # Load element-specific divisors from Excel and apply them
-        element_divisors = _load_element_divisors()
-        for element, divisor in element_divisors.itertuples(index=False):
+        div_df = element_divisors[element_divisors["exclude"] != "exclude"]
+        for element, divisor in div_df[["element", "count"]].itertuples(index=False):
             element = str(element).strip().lower()
             divisor = pd.to_numeric(divisor, errors="coerce")
             if pd.isna(divisor) or divisor == 0:
