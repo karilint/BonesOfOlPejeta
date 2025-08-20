@@ -108,8 +108,8 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
                     "Taxon Label",
                     "Pre: Sex",
                     "Pre: Age",
-                    "What element is this?",
                     "Weathering class",
+                    "What element is this?",
                 ],
                 columns="Side",
                 aggfunc="size",
@@ -140,8 +140,8 @@ def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
             "Taxon Label",
             "Pre: Sex",
             "Pre: Age",
-            "What element is this?",
             "Weathering class",
+            "What element is this?",
         ]
     ]
 
