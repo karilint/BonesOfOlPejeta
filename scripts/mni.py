@@ -1,0 +1,267 @@
+import pandas as pd
+import numpy as np
+from pathlib import Path
+
+
+ELEMENT_COUNTS_PATH = (
+    Path(__file__).resolve().parent.parent / "data/import/excel/Element counts.xlsx"
+)
+
+
+def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
+    """Load element divisors from an Excel file.
+
+    The spreadsheet must contain ``element`` and ``count`` columns and include
+    the expected vertebra counts.  Any problem reading the file or validating the
+    values results in an exception so that MNI calculations halt with a clear
+    message.  An optional ``exclude`` column marks elements that should be
+    dropped from calculations entirely.
+
+    Parameters
+    ----------
+    path : Path
+        Location of the Excel file containing ``element`` and ``count`` columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with lowercase ``element`` names, their associated ``count``
+        divisors and an ``exclude`` flag.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the Excel file is missing.
+    ValueError
+        If required columns are absent, contain non-numeric counts, or expected
+        vertebra counts are missing/mismatched.
+    """
+    try:
+        df_div = pd.read_excel(path)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Element counts file not found: {path}"
+        ) from exc
+
+    df_div.columns = df_div.columns.str.strip().str.lower()
+    required_cols = {"element", "count"}
+    if not required_cols.issubset(df_div.columns):
+        raise ValueError(
+            "Element counts file missing required columns: 'element', 'count'"
+        )
+
+    columns = ["element", "count"]
+    if "exclude" in df_div.columns:
+        columns.append("exclude")
+    df_div = df_div[columns].dropna(subset=["element"])
+
+    df_div["element"] = df_div["element"].astype(str).str.strip().str.lower()
+    df_div["count"] = pd.to_numeric(df_div["count"], errors="coerce")
+    if df_div["count"].isna().any():
+        raise ValueError("Element counts file contains non-numeric values")
+
+    if "exclude" not in df_div.columns:
+        df_div["exclude"] = ""
+    df_div["exclude"] = df_div["exclude"].astype(str).str.strip().str.lower()
+
+    # Verify vertebra counts
+    expected_vertebra = {
+        "cervical vertebra": 7,
+        "thoracic vertebra": 12,
+        "lumbar vertebra": 5,
+    }
+    div_index = df_div.set_index("element")
+    missing = [name for name in expected_vertebra if name not in div_index.index]
+    mismatched = {
+        name: int(div_index.loc[name, "count"])
+        for name, expected in expected_vertebra.items()
+        if name in div_index.index and int(div_index.loc[name, "count"]) != expected
+    }
+    if missing or mismatched:
+        parts = []
+        if missing:
+            parts.append("missing " + ", ".join(missing))
+        if mismatched:
+            details = ", ".join(
+                f"{name}={actual}" for name, actual in mismatched.items()
+            )
+            parts.append(f"unexpected counts ({details})")
+        raise ValueError(
+            "Element counts spreadsheet has unexpected vertebra counts: "
+            + "; ".join(parts)
+        )
+
+    return df_div[["element", "count", "exclude"]]
+
+
+def calculate_mni(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Calculate the Minimum Number of Individuals (MNI).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Either a raw dataframe containing ``TransectUID``, ``Taxon Label``,
+        ``Pre: Sex``, ``Pre: Age``, ``Weathering class``, ``What element is this?``
+        and ``Side`` columns or a pivoted dataframe where each side is already a
+        column.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, pd.DataFrame]
+        Two dataframes are returned:
+
+        * ``transect_mni`` – ``TransectUID`` and aggregated ``MNI`` values.
+        * ``group_mni`` – the intermediate group MNI values used to derive the
+          transect totals with columns ``TransectUID``, ``Taxon``, ``Sex``,
+          ``Age``, ``Weathering`` and ``Group MNI``.
+    """
+    required = {
+        "TransectUID",
+        "Taxon Label",
+        "Pre: Sex",
+        "Pre: Age",
+        "Weathering class",
+        "What element is this?",
+    }
+
+    df = df.copy()
+    df.columns = df.columns.str.strip()
+
+    if "TransectUID" not in df.columns:
+        raise ValueError("Missing columns: ['TransectUID']")
+
+    # Normalise transect identifiers to integers
+    df["TransectUID"] = pd.to_numeric(df["TransectUID"], errors="coerce").astype("Int64")
+
+    # If Taxon Label is missing or empty, attempt to construct it from
+    # alternative taxon columns that may exist in the raw data.
+    needs_taxon = "Taxon Label" not in df.columns or df["Taxon Label"].isna().any()
+    if needs_taxon:
+        alt_cols = [
+            c for c in ["Post: Taxon Guess?", "Pre: Taxon"] if c in df.columns
+        ]
+        if alt_cols:
+            if "Taxon Label" not in df.columns:
+                df["Taxon Label"] = pd.NA
+            for c in alt_cols:
+                df["Taxon Label"] = df["Taxon Label"].fillna(df[c])
+            df = df.drop(columns=alt_cols)
+        else:
+            raise ValueError(
+                "Missing columns: ['Taxon Label'] and no alternative taxon columns found"
+            )
+
+    # Remove high-level taxa that should not contribute to MNI
+    if "Taxon Label" in df.columns:
+        df = df[~df["Taxon Label"].str.lower().isin(["mammalia indet", "ungulate"])]
+
+    if "Side" in df.columns:
+        # Raw dataframe: ensure all required columns exist and drop rows lacking
+        # essential information before creating the pivot table.
+        missing = required.union({"Side"}) - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing columns: {sorted(missing)}")
+        df = df.dropna(subset=required.union({"Side"}) - {"What element is this?"})
+        pivot = (
+            df.pivot_table(
+                index=[
+                    "TransectUID",
+                    "Taxon Label",
+                    "Pre: Sex",
+                    "Pre: Age",
+                    "Weathering class",
+                    "What element is this?",
+                ],
+                columns="Side",
+                aggfunc="size",
+                fill_value=0,
+            )
+            .rename_axis(columns=None)
+            .reset_index()
+        )
+    else:
+        # Assume already pivoted.  Validate columns and remove incomplete rows.
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing columns: {sorted(missing)}")
+        pivot = df.dropna(subset=required).copy()
+        pivot["TransectUID"] = pd.to_numeric(pivot["TransectUID"], errors="coerce").astype("Int64")
+
+    # Replace empty or missing element names with "teeth" before scaling counts
+    pivot["What element is this?"] = (
+        pivot["What element is this?"].replace(r"^\s*$", pd.NA, regex=True).fillna("teeth")
+    )
+
+    side_cols = [
+        c
+        for c in pivot.columns
+        if c
+        not in [
+            "TransectUID",
+            "Taxon Label",
+            "Pre: Sex",
+            "Pre: Age",
+            "Weathering class",
+            "What element is this?",
+        ]
+    ]
+    # Load element divisors and exclusion flags
+    element_divisors = _load_element_divisors()
+    exclude = element_divisors[element_divisors["exclude"] == "exclude"]["element"].tolist()
+
+    # Remove elements flagged for exclusion
+    pivot = pivot[~pivot["What element is this?"].str.lower().isin(exclude)]
+
+    # If an "unknown" side column exists, split the count evenly between sides
+    if "unknown" in side_cols:
+        pivot["unknown"] = np.ceil(pivot["unknown"] / 2).astype(int)
+
+    # Apply element-specific divisors
+    if side_cols:
+        div_df = element_divisors[element_divisors["exclude"] != "exclude"]
+        for element, divisor in div_df[["element", "count"]].itertuples(index=False):
+            element = str(element).strip().lower()
+            divisor = pd.to_numeric(divisor, errors="coerce")
+            if pd.isna(divisor) or divisor == 0:
+                continue
+            rows = pivot["What element is this?"].str.lower() == element
+            if rows.any():
+                adjusted = np.ceil(pivot.loc[rows, side_cols] / divisor).astype(int)
+                pivot.loc[rows, side_cols] = adjusted
+
+    pivot["element_mni"] = pivot[side_cols].max(axis=1)
+
+    group_mni = (
+        pivot.groupby(
+            [
+                "TransectUID",
+                "Taxon Label",
+                "Pre: Sex",
+                "Pre: Age",
+                "Weathering class",
+            ]
+        )["element_mni"].max().reset_index()
+    )
+
+    group_mni = group_mni.rename(
+        columns={
+            "Taxon Label": "Taxon",
+            "Pre: Sex": "Sex",
+            "Pre: Age": "Age",
+            "Weathering class": "Weathering",
+            "element_mni": "Group MNI",
+        }
+    )
+    group_mni["TransectUID"] = pd.to_numeric(
+        group_mni["TransectUID"], errors="coerce"
+    ).astype("Int64")
+
+    transect_mni = (
+        group_mni.groupby("TransectUID")["Group MNI"].sum().reset_index()
+    )
+    transect_mni = transect_mni.rename(columns={"Group MNI": "MNI"})
+    transect_mni["TransectUID"] = pd.to_numeric(
+        transect_mni["TransectUID"], errors="coerce"
+    ).astype("Int64")
+
+    return transect_mni, group_mni
