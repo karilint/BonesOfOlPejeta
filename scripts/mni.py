@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
+import warnings
 
 
 ELEMENT_COUNTS_PATH = (
@@ -9,7 +10,11 @@ ELEMENT_COUNTS_PATH = (
 
 
 def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
-    """Load element divisors from an Excel file.
+    """Load element divisors from an Excel file if available.
+
+    If the file is missing or does not contain the expected columns, an empty
+    DataFrame is returned so that downstream logic treats all elements as having
+    a divisor of ``1``.
 
     Parameters
     ----------
@@ -20,22 +25,49 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     -------
     pd.DataFrame
         DataFrame with lowercase ``element`` names and their associated ``count``
-        divisors.
+        divisors. An empty DataFrame is returned when the file is not usable.
     """
     try:
         df_div = pd.read_excel(path)
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"Element counts file not found: {path}") from exc
+    except FileNotFoundError:
+        warnings.warn(
+            f"Element counts file not found: {path}. "
+            "Proceeding without element divisors.",
+            RuntimeWarning,
+        )
+        return pd.DataFrame(columns=["element", "count"])
 
     df_div.columns = df_div.columns.str.strip().str.lower()
     required_cols = {"element", "count"}
     if not required_cols.issubset(df_div.columns):
-        missing = required_cols - set(df_div.columns)
-        raise ValueError(
-            f"Element counts file missing required columns: {sorted(missing)}"
+        warnings.warn(
+            "Element counts file missing required columns. "
+            "Proceeding without element divisors.",
+            RuntimeWarning,
         )
+        return pd.DataFrame(columns=["element", "count"])
 
-    return df_div[list(required_cols)]
+    df_div = df_div[list(required_cols)].dropna(subset=["element"])
+    df_div["element"] = df_div["element"].astype(str).str.strip().str.lower()
+    df_div["count"] = pd.to_numeric(df_div["count"], errors="coerce")
+    df_div = df_div.dropna(subset=["count"])
+
+    # Basic sanity check for vertebrae counts if present
+    expected_vertebra = {
+        "cervical vertebra": 7,
+        "thoracic vertebra": 12,
+        "lumbar vertebra": 5,
+    }
+    for name, expected in expected_vertebra.items():
+        if name in df_div["element"].values:
+            actual = df_div.loc[df_div["element"] == name, "count"].iloc[0]
+            if actual != expected:
+                warnings.warn(
+                    f"Element count for '{name}' expected {expected} but got {actual}.",
+                    RuntimeWarning,
+                )
+
+    return df_div
 
 
 def calculate_mni(df: pd.DataFrame) -> pd.DataFrame:
