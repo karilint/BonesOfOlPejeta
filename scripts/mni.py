@@ -151,9 +151,9 @@ def calculate_mni(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "Missing columns: ['Taxon Label'] and no alternative taxon columns found"
             )
 
-    # Remove high-level taxa that should not contribute to MNI
+    # Remove high-level and other taxa not needed for MNI
     if "Taxon Label" in df.columns:
-        df = df[~df["Taxon Label"].str.lower().isin(["mammalia indet", "ungulate"])]
+        df = df[~df["Taxon Label"].str.lower().isin(["mammalia indet", "ungulate", "ostrich", "Aves (medium)", "Aves (small)"])]
 
     if "Side" in df.columns:
         # Raw dataframe: ensure all required columns exist and drop rows lacking
