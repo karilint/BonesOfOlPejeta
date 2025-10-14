@@ -67,8 +67,8 @@ def _load_element_divisors(path: Path = ELEMENT_COUNTS_PATH) -> pd.DataFrame:
     # Verify vertebra counts
     expected_vertebra = {
         "cervical vertebra": 7,
-        "thoracic vertebra": 12,
-        "lumbar vertebra": 5,
+        "thoracic vertebra": 18, # based on horse
+        "lumbar vertebra": 6,
     }
     div_index = df_div.set_index("element")
     missing = [name for name in expected_vertebra if name not in div_index.index]
