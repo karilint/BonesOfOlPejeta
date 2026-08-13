@@ -1,0 +1,13 @@
+sector,year,period,living_count,living_taxa,bone_MNI,bone_taxa,bone_MNI_ge_10
+Eastern,2002,pre-removal,935.0,11,23.0,5,True
+Eastern,2003,pre-removal,979.0,10,10.0,5,True
+Eastern,2006,pre-removal,1671.0,14,13.0,6,True
+Eastern,2008,post-removal (2007+),3965.0,14,11.0,3,True
+Eastern,2010,post-removal (2007+),2417.0,13,5.0,3,False
+Eastern,2013,post-removal (2007+),2669.0,14,22.0,7,True
+Eastern,2014,post-removal (2007+),3506.0,14,23.0,6,True
+Western,2006,pre-removal,4556.0,11,4.0,3,False
+Western,2008,post-removal (2007+),5944.0,11,4.0,3,False
+Western,2010,post-removal (2007+),6625.0,12,1.0,1,False
+Western,2013,post-removal (2007+),7711.0,14,21.0,7,True
+Western,2014,post-removal (2007+),6414.0,12,39.0,6,True

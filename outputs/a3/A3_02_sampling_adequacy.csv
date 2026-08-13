@@ -1,0 +1,5 @@
+dataset,sector,year_samples,total_count,median_sample_count,minimum_sample_count,maximum_sample_count,samples_below_10
+aerial,Eastern,20,42708.0,2047.5,935.0,3965.0,0
+aerial,Western,17,113086.0,6507.0,4556.0,9820.0,0
+bones,Eastern,14,293.0,18.0,2.0,54.0,3
+bones,Western,11,224.0,16.0,1.0,57.0,5

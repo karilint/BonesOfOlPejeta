@@ -1,0 +1,15 @@
+sector,taxon,mean_relative_abundance,median_annual_rank_when_present,occupancy,years,dataset
+Eastern,Equus burchellii,0.309465091766269,1.0,1.0,7,ground
+Eastern,Phacochoerus africanus,0.12638167641407258,3.0,1.0,7,ground
+Eastern,Aepyceros melampus,0.12120867021636277,3.0,1.0,7,ground
+Eastern,Syncerus caffer,0.10498593981831546,4.0,1.0,7,ground
+Eastern,Eudorcas thomsonii,0.08449031460547649,6.0,1.0,7,ground
+Eastern,Kobus ellipsiprymnus,0.06596408917911648,6.0,1.0,7,ground
+Eastern,Giraffa camelopardalis,0.060841534359908,7.0,1.0,7,ground
+Eastern,Nanger granti,0.059609830210668194,8.0,1.0,7,ground
+Eastern,Loxodonta africana,0.01798993605393483,9.0,1.0,7,ground
+Eastern,Oryx beisa,0.01654066582817278,11.0,1.0,7,ground
+Eastern,Taurotragus oryx,0.013873285634761303,11.0,1.0,7,ground
+Eastern,Alcelaphus buselaphus,0.01285203569589932,10.0,1.0,7,ground
+Eastern,Diceros bicornis,0.0037642881739875546,13.0,0.5714285714285714,7,ground
+Eastern,Redunca redunca,0.0020326420430552827,14.0,0.8571428571428571,7,ground

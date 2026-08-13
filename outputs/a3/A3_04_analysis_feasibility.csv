@@ -1,0 +1,7 @@
+scope,sector,period,years_available,years_MNI_ge_10
+fence period,Eastern,post-removal (2007+),4,3
+fence period,Eastern,pre-removal,10,8
+fence period,Western,post-removal (2007+),4,2
+fence period,Western,pre-removal,7,4
+live-year overlap,Eastern,all,7,6
+live-year overlap,Western,all,7,3

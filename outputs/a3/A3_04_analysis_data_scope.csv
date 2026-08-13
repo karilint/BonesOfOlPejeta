@@ -1,0 +1,5 @@
+analysis,observations_used,year_matching,bone_minimum
+Overall live–bone fidelity,All primary observations pooled by dataset,No,Not applied
+Pre/post change correspondence,All observations pooled within each fence period,No,Not applied
+Annual bone diversity,Individual bone sector-years,No,Summed matched-taxon MNI ≥10 per sector-year
+Paired annual live–bone test,Overlapping sector-years only,Required,Not performed: inadequate replication

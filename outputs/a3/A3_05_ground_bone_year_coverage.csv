@@ -1,0 +1,8 @@
+sector,year,ground_count,ground_taxa,bone_MNI,bone_taxa,bone_MNI_ge_10
+Eastern,1996,3245.0,14,,,False
+Eastern,1997,3501.0,14,,,False
+Eastern,1998,3610.0,14,25.0,8.0,True
+Eastern,1999,3615.0,14,,,False
+Eastern,2001,2902.0,13,,,False
+Eastern,2002,811.0,13,23.0,5.0,True
+Eastern,2003,4344.0,12,10.0,5.0,True
